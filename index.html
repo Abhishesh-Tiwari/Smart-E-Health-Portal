@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en" class="transition-colors duration-200">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart E-Health Portal</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Tailwind CSS with Dark Mode -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Immediate Auth Guard Check -->
+  <script>
+      (function () {
+        const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        const rawUser = localStorage.getItem('currentUser');
+        if (!loggedIn || !rawUser) {
+          window.location.replace('login.html');
+        }
+      })();
+  </script>
+</head>
+
+<body
+  class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex antialiased font-sans transition-colors duration-200">
+
+  <!-- =========================================================================
+       SIDEBAR NAVIGATION
+       ========================================================================= -->
+  <aside id="sidebar"
+    class="fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0">
+    <!-- Tricolor Bar -->
+    <div class="h-1 w-full bg-gradient-to-r from-orange-500 via-white to-green-500"></div>
+    <!-- Brand -->
+    <div class="h-16 flex items-center justify-between px-5 bg-blue-900 text-white border-b border-blue-950">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-md bg-white text-blue-900 flex items-center justify-center font-bold shadow-sm">
+          <i class="fa-solid fa-heart-pulse text-base"></i>
+        </div>
+        <div>
+          <span class="font-bold text-sm text-white tracking-tight block leading-tight" data-i18n="portal_brand">
+            Smart E-Health
+          </span>
+          <span class="text-[10px] text-blue-200 tracking-wider uppercase font-semibold">Govt. of India</span>
+        </div>
+      </div>
+      <button id="sidebar-close-btn" type="button" class="lg:hidden text-blue-200 hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <!-- User Profile Pill -->
+    <div onclick="window.switchTab('profile')"
+      class="p-3.5 mx-3 mt-3.5 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-blue-900 dark:hover:border-blue-700 transition-all group"
+      title="View & Edit My Profile">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div id="sidebar-user-avatar"
+            class="w-8 h-8 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-300 font-bold text-xs flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-user text-[11px]"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <div id="sidebar-user-name" class="font-bold text-xs text-gray-900 dark:text-white truncate">User</div>
+              <button type="button" onclick="event.stopPropagation(); openEditProfileModal();"
+                class="text-gray-400 hover:text-blue-900 dark:hover:text-blue-400 text-[10px] p-0.5 cursor-pointer"
+                title="Edit Profile">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+            </div>
+            <div id="user-location-text" class="text-[10px] text-gray-400 flex items-center gap-1 truncate"
+              title="Nearby • Auto-detected">
+              <i class="fa-solid fa-location-dot text-rose-500 text-[9px] shrink-0"></i>
+              <span id="location-display-label" class="truncate">Nearby • Auto-detected</span>
+            </div>
+          </div>
+        </div>
+        <span id="sidebar-user-blood"
+          class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 shrink-0">
+          AB+
+        </span>
+      </div>
+
+      <!-- Dynamic Geolocation Action Button -->
+      <button id="detect-location-btn" type="button" onclick="event.stopPropagation(); detectUserLocation()"
+        class="w-full mt-2.5 py-1.5 px-2.5 rounded-md bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-800 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all"
+        title="Detect current location">
+        <i id="detect-loc-icon" class="fa-solid fa-crosshairs text-blue-900 dark:text-blue-400"></i>
+        <span id="detect-loc-text" data-i18n="btn_detect_location">Detect Location</span>
+      </button>
+    </div>
+
+    <!-- Navigation Menu Items -->
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1 text-sm font-medium">
+      <a href="#dashboard" data-tab="dashboard"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md bg-blue-900 text-white font-semibold">
+        <i class="fa-solid fa-house text-sm w-4"></i>
+        <span data-i18n="nav_dashboard">Dashboard</span>
+      </a>
+
+      <a href="#profile" data-tab="profile"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+        <i class="fa-solid fa-user-circle text-sm w-4 text-blue-900 dark:text-blue-400"></i>
+        <span data-i18n="nav_profile">My Profile</span>
+      </a>
+
+      <a href="#hospitals" data-tab="hospitals"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+        <i class="fa-solid fa-hospital text-sm w-4 text-emerald-600"></i>
+        <span data-i18n="nav_hospitals">Nearby Hospitals</span>
+      </a>
+
+      <a href="#blood" data-tab="blood"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+        <i class="fa-solid fa-droplet text-sm w-4 text-rose-600"></i>
+        <span data-i18n="nav_blood">Blood Availability</span>
+      </a>
+
+      <a href="#triage" data-tab="triage"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+        <i class="fa-solid fa-stethoscope text-sm w-4 text-blue-900 dark:text-blue-400"></i>
+        <span data-i18n="nav_triage">Symptom Checker</span>
+      </a>
+
+      <a href="#vitals" data-tab="vitals"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+        <i class="fa-solid fa-chart-line text-sm w-4 text-indigo-600"></i>
+        <span data-i18n="nav_vitals">Health Vitals</span>
+      </a>
+
+      <a href="#medicines" data-tab="medicines"
+        class="nav-tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+        <i class="fa-solid fa-pills text-sm w-4 text-amber-500"></i>
+        <span data-i18n="nav_medicines">Medicine Schedule</span>
+      </a>
+
+
+    </nav>
+
+    <!-- Emergency Helpline Strip -->
+    <div class="p-3 border-t border-gray-100 dark:border-gray-700">
+      <div class="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-md border border-rose-100 dark:border-rose-900 text-xs">
+        <div class="font-bold text-rose-900 dark:text-rose-200 flex items-center gap-1.5"
+          data-i18n="local_ambulance_title">
+          <i class="fa-solid fa-truck-medical text-rose-600"></i> Local Ambulance (108)
+        </div>
+        <p class="text-[10px] text-rose-700 dark:text-rose-300 mt-0.5" data-i18n="local_ambulance_desc">24x7 Free
+          Medical Helpline</p>
+        <a href="tel:108"
+          class="mt-2 py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-bold flex items-center justify-center gap-1 text-[11px]">
+          <i class="fa-solid fa-phone"></i> <span data-i18n="ambulance_108">Call 108 Ambulance</span>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       EDIT PROFILE MODAL
+       ========================================================================= -->
+  <div id="edit-profile-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div id="edit-profile-backdrop" class="modal-backdrop fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+      onclick="closeEditProfileModal()"></div>
+    <div
+      class="modal-content relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-md p-6 z-10 border border-gray-200 dark:border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-8 h-8 rounded-md bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-user-pen text-sm"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white" data-i18n="edit_profile_title">Edit
+              Profile Information</h3>
+            <p class="text-[11px] text-gray-400" data-i18n="edit_profile_desc">Update your clinical identity and contact
+              details.</p>
+          </div>
+        </div>
+        <button id="close-edit-profile-btn" type="button" onclick="closeEditProfileModal()"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-base cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="edit-profile-form" onsubmit="handleSaveProfile(event); return false;" class="mt-4 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <!-- Full Name (Read-Only) -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="edit-name-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                Full Name
+              </label>
+              <span class="text-[10px] text-gray-400 font-medium">Read-only (Signup)</span>
+            </div>
+            <input type="text" id="edit-name-input" readonly
+              class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/80 text-xs sm:text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed select-none font-medium focus:outline-none">
+          </div>
+
+          <!-- Email Address (Read-Only) -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="edit-email-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                Email Address
+              </label>
+              <span class="text-[10px] text-gray-400 font-medium">Read-only (Login ID)</span>
+            </div>
+            <input type="email" id="edit-email-input" readonly
+              class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/80 text-xs sm:text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed select-none font-medium focus:outline-none">
+          </div>
+
+          <!-- Age -->
+          <div>
+            <label for="edit-age-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Age (Years) <span class="text-rose-500">*</span>
+            </label>
+            <input type="number" id="edit-age-input" required min="1" max="120" placeholder="e.g., 48"
+              class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition-all font-medium">
+          </div>
+
+          <!-- Gender -->
+          <div>
+            <label for="edit-gender-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Gender <span class="text-rose-500">*</span>
+            </label>
+            <select id="edit-gender-input" required
+              class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition-all font-medium">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <!-- Blood Group -->
+          <div>
+            <label for="edit-blood-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Blood Group <span class="text-rose-500">*</span>
+            </label>
+            <select id="edit-blood-input" required
+              class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition-all font-bold">
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+            </select>
+          </div>
+
+          <!-- Phone Number -->
+          <div>
+            <label for="edit-phone-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Phone Number <span class="text-rose-500">*</span>
+            </label>
+            <input type="tel" id="edit-phone-input" required placeholder="e.g., +91 98260 12345"
+              class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition-all font-medium">
+          </div>
+        </div>
+
+        <!-- Residential Address -->
+        <div>
+          <label for="edit-address-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+            Residential Address <span class="text-rose-500">*</span>
+          </label>
+          <textarea id="edit-address-input" required rows="2" placeholder="e.g., E-7 Arera Colony, Bhopal, MP 462016"
+            class="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition-all font-medium"></textarea>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <button type="button" id="cancel-edit-profile-btn" onclick="closeEditProfileModal()"
+            class="px-4 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-all cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" id="save-profile-btn"
+            class="px-4 py-2 rounded-md bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
+            <i class="fa-solid fa-check text-xs"></i>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       ADD MEDICINE MODAL
+       ========================================================================= -->
+  <div id="add-medicine-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="modal-backdrop fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddMedicineModal()"></div>
+    <div
+      class="modal-content relative bg-white dark:bg-gray-800 w-full max-w-md rounded-md p-6 z-10 border border-gray-200 dark:border-gray-700 shadow-2xl">
+      <div class="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-8 h-8 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-pills text-sm"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white" data-i18n="add_med_title">Add New
+              Medicine</h3>
+            <p class="text-[11px] text-gray-400" data-i18n="add_med_desc">Schedule daily dose timings and instructions.
+            </p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAddMedicineModal()"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-base">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="add-medicine-form" onsubmit="handleAddMedicine(event)" class="mt-4 space-y-4">
+        <div>
+          <label for="med-name-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+            Medicine Name <span class="text-rose-500">*</span>
+          </label>
+          <input type="text" id="med-name-input" required placeholder="e.g., Amoxicillin 500mg, Paracetamol"
+            class="w-full px-3.5 py-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+        </div>
+
+        <div>
+          <label for="med-dose-input" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+            Dosage Details <span class="text-rose-500">*</span>
+          </label>
+          <input type="text" id="med-dose-input" required placeholder="e.g., 1 Tablet after food, 5ml syrup"
+            class="w-full px-3.5 py-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
+            Intake Timing <span class="text-rose-500">* (Select at least one)</span>
+          </label>
+          <div class="grid grid-cols-3 gap-2">
+            <label
+              class="flex flex-col items-center justify-center p-3 rounded-md border border-gray-200 dark:border-gray-700 hover:border-amber-400 cursor-pointer text-xs bg-gray-50 dark:bg-gray-900 transition-all select-none">
+              <input type="checkbox" id="timing-morning" value="morning"
+                class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 mb-1">
+              <span class="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <i class="fa-solid fa-sun text-[11px]"></i> Morning
+              </span>
+              <span class="text-[10px] text-gray-400">Breakfast</span>
+            </label>
+
+            <label
+              class="flex flex-col items-center justify-center p-3 rounded-md border border-gray-200 dark:border-gray-700 hover:border-sky-400 cursor-pointer text-xs bg-gray-50 dark:bg-gray-900 transition-all select-none">
+              <input type="checkbox" id="timing-afternoon" value="afternoon"
+                class="w-4 h-4 rounded text-sky-600 focus:ring-sky-400 mb-1">
+              <span class="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1">
+                <i class="fa-solid fa-cloud-sun text-[11px]"></i> Afternoon
+              </span>
+              <span class="text-[10px] text-gray-400">Lunch</span>
+            </label>
+
+            <label
+              class="flex flex-col items-center justify-center p-3 rounded-md border border-gray-200 dark:border-gray-700 hover:border-indigo-400 cursor-pointer text-xs bg-gray-50 dark:bg-gray-900 transition-all select-none">
+              <input type="checkbox" id="timing-night" value="night"
+                class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-400 mb-1">
+              <span class="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <i class="fa-solid fa-moon text-[11px]"></i> Night
+              </span>
+              <span class="text-[10px] text-gray-400">Dinner / Bed</span>
+            </label>
+          </div>
+          <p id="timing-error-msg" class="text-[11px] text-rose-500 font-semibold hidden mt-1">Please select at least
+            one timing slot.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <button type="button" onclick="closeAddMedicineModal()"
+            class="px-4 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-all">
+            Cancel
+          </button>
+          <button type="submit"
+            class="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all">
+            <i class="fa-solid fa-check text-xs"></i>
+            <span>Save Medicine</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       AYUSHMAN / ABHA CARD MODAL
+       ========================================================================= -->
+  <div id="ayushman-modal" class="modal-container fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="modal-backdrop fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+      onclick="closeAyushmanModal()"></div>
+    <div
+      class="modal-content relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-md p-6 z-10 border border-gray-200 dark:border-gray-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700 no-print">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-9 h-9 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-id-card text-base"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-gray-900 dark:text-white">Ayushman Bharat Digital Health Card</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">National Health Authority • Digital Card Upload</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="window.print()"
+            class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-bold transition-all flex items-center gap-1">
+            <i class="fa-solid fa-print"></i> <span>Print</span>
+          </button>
+          <button id="close-ayushman-modal-btn" type="button" onclick="closeAyushmanModal()"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg cursor-pointer p-1" title="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dynamic Status Header: Checked from currentUser in LocalStorage -->
+      <!-- 1. If NO card exists -->
+      <div id="ayushman-no-card-view"
+        class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded text-amber-900 dark:text-amber-100 flex items-start gap-3">
+        <i class="fa-solid fa-circle-exclamation text-amber-600 text-lg mt-0.5 shrink-0"></i>
+        <div>
+          <h4 class="font-bold text-sm">No Ayushman Card linked yet</h4>
+          <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+            Please choose and upload an image of your Ayushman / ABHA digital health card below.
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. If card EXISTS -->
+      <div id="ayushman-linked-view"
+        class="hidden p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded text-emerald-900 dark:text-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-lg shrink-0">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div>
+            <span
+              class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block">Verified
+              Health Card</span>
+            <div class="text-sm sm:text-base font-bold text-emerald-950 dark:text-emerald-50">
+              Your Linked Card Image is Active
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Uploaded Image Display in Modal -->
+      <div id="modal-image-preview-container"
+        class="hidden p-3 bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded text-center">
+        <img id="modal-display-ayushman-image" class="max-h-64 max-w-full mx-auto rounded border shadow-sm"
+          alt="Uploaded Ayushman Card Preview">
+      </div>
+
+      <!-- Form for Image Upload -->
+      <div id="ayushman-form-container">
+        <form id="ayushman-card-form" onsubmit="event.preventDefault(); saveAyushmanImage();"
+          class="space-y-4 no-print">
+          <div>
+            <label for="input-ayushman-image"
+              class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center justify-between">
+              <span>Upload Ayushman Card Image <span class="text-rose-500">*</span></span>
+              <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">JPG, PNG, WebP</span>
+            </label>
+            <input type="file" id="input-ayushman-image" accept="image/*" class="w-full border p-2 rounded">
+            <!-- Validation Error Message Area -->
+            <p id="ayushman-input-error"
+              class="text-xs text-rose-500 mt-1.5 hidden flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span id="ayushman-error-text">Please select an image file to upload.</span>
+            </p>
+            <p class="text-[11px] text-gray-400 mt-1">
+              Upload a clear photo or scan of your official Ayushman Bharat digital card.
+            </p>
+          </div>
+
+          <!-- Modal Action Buttons inside Form -->
+          <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div>
+              <button id="btn-unlink-ayushman" type="button" onclick="handleUnlinkAyushmanCard()"
+                class="px-3 py-2 text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded text-xs font-bold transition-all hidden items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Remove Card</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btn-close-ayushman" type="button" onclick="closeAyushmanModal()"
+                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs font-bold transition-all cursor-pointer">
+                Cancel
+              </button>
+              <button id="save-btn-ayushman" type="button" onclick="saveAyushmanImage()"
+                class="px-5 py-2.5 bg-blue-900 hover:bg-blue-800 text-white rounded text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span id="save-ayushman-btn-text">Save</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-auto"></div>
+
+
+  <!-- =========================================================================
+       MAIN PAGE WRAPPER
+       ========================================================================= -->
+  <div class="lg:pl-64 flex-1 flex flex-col min-w-0">
+
+    <!-- Top Navbar -->
+    <header class="sticky top-0 z-30 bg-blue-900 text-white border-b border-blue-950 shadow-sm transition-colors">
+      <!-- 4px Tricolor Accent Top Border -->
+      <div class="h-1 w-full bg-gradient-to-r from-orange-500 via-white to-green-500"></div>
+      <div class="h-16 px-4 sm:px-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button id="mobile-menu-btn" type="button"
+            class="lg:hidden p-1.5 text-blue-100 hover:text-white hover:bg-blue-800 rounded-md">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-heart-pulse text-orange-400 text-lg"></i>
+            <div>
+              <span class="font-extrabold text-sm sm:text-base text-white tracking-tight">Smart E-Health Portal</span>
+              <span
+                class="hidden md:inline-block ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-800 text-blue-200 border border-blue-700">NIC
+                Standards</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls: Theme, Language, SOS, Logout -->
+        <div class="flex items-center gap-2">
+          <!-- Language Toggle -->
+          <button id="lang-toggle-btn" type="button"
+            class="px-2.5 py-1.5 rounded-md border border-blue-700 bg-blue-950/60 text-xs font-bold text-white hover:bg-blue-800 flex items-center gap-1.5 transition-colors"
+            title="Switch Language (EN / हिन्दी)">
+            <i class="fa-solid fa-globe text-blue-300"></i>
+            <span id="current-lang-label">हिन्दी</span>
+          </button>
+
+          <!-- Dark / Light Mode Toggle -->
+          <button id="theme-toggle-btn" type="button"
+            class="px-2.5 py-1.5 rounded-md border border-blue-700 bg-blue-950/60 text-xs font-bold text-white hover:bg-blue-800 flex items-center gap-1.5 transition-colors"
+            title="Toggle Theme">
+            <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
+            <span id="theme-toggle-text">Dark</span>
+          </button>
+
+          <!-- SOS 108 -->
+          <a href="tel:108"
+            class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-md flex items-center gap-1 shadow-sm">
+            <i class="fa-solid fa-phone"></i>
+            <span>108</span>
+          </a>
+
+          <!-- Ayushman Card -->
+          <button id="nav-ayushman-card-btn" type="button" onclick="openAyushmanModal()"
+            class="px-2.5 py-1.5 rounded-md border border-emerald-600 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+            title="Ayushman Card">
+            <i class="fa-solid fa-id-card text-emerald-200"></i>
+            <span class="hidden md:inline" data-i18n="nav_ayushman_card">Ayushman Card</span>
+          </button>
+
+          <!-- Logout -->
+          <button type="button" onclick="handleLogout()"
+            class="px-2.5 py-1.5 rounded-md border border-blue-700 bg-blue-950/60 text-blue-100 hover:bg-rose-700 hover:border-rose-700 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+            title="Logout">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span class="hidden sm:inline" data-i18n="nav_logout">Logout</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dynamic Content Area -->
+    <main class="flex-1 p-4 sm:p-6 space-y-6">
+
+      <!-- =====================================================================
+           1. DASHBOARD
+           ===================================================================== -->
+      <section id="section-dashboard" class="module-section space-y-5">
+        <!-- Clean Welcome Banner -->
+        <div
+          class="bg-gradient-to-r from-blue-900 to-slate-900 rounded-md p-5 sm:p-6 text-white shadow-sm border border-blue-950">
+          <h2 id="welcome-user-heading" class="text-xl sm:text-2xl font-extrabold" data-i18n="welcome_title">
+            Welcome, User
+          </h2>
+          <p class="text-blue-100 dark:text-gray-300 text-xs sm:text-sm mt-1 max-w-2xl" data-i18n="welcome_desc">
+            Check available hospital beds, locate emergency blood stock, and track your daily medicines.
+          </p>
+
+          <div class="flex flex-wrap gap-2.5 mt-4">
+            <button type="button" onclick="window.switchTab('hospitals')"
+              class="px-3.5 py-2 bg-white text-blue-900 rounded-md text-xs font-bold hover:bg-gray-100 flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-hospital text-emerald-600"></i>
+              <span data-i18n="btn_find_hospitals">Find Nearby Hospitals</span>
+            </button>
+            <button type="button" onclick="window.switchTab('blood')"
+              class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-droplet"></i>
+              <span data-i18n="btn_check_blood">Check Blood Stock</span>
+            </button>
+            <button type="button" onclick="window.switchTab('triage')"
+              class="px-3.5 py-2 bg-blue-800 hover:bg-blue-700 text-white rounded-md text-xs font-bold border border-blue-700 flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-stethoscope"></i>
+              <span data-i18n="btn_check_symptoms">Check Symptoms</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <span class="text-[11px] font-bold text-gray-400 uppercase" data-i18n="kpi_beds_title">Available Beds</span>
+            <div class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">58 Open Beds</div>
+            <span class="text-[11px] text-emerald-600 font-semibold" data-i18n="kpi_beds_status">Across nearby
+              hospitals</span>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <span class="text-[11px] font-bold text-gray-400 uppercase" data-i18n="kpi_bp_title">Blood Pressure</span>
+            <div class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">120/78 mmHg</div>
+            <span class="text-[11px] text-emerald-600 font-semibold" data-i18n="kpi_bp_status">Normal range</span>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <span class="text-[11px] font-bold text-gray-400 uppercase" data-i18n="kpi_sugar_title">Blood Sugar</span>
+            <div class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">104 mg/dL</div>
+            <span class="text-[11px] text-emerald-600 font-semibold" data-i18n="kpi_sugar_status">Controlled</span>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <span class="text-[11px] font-bold text-gray-400 uppercase" data-i18n="kpi_meds_title">Medicines
+              Today</span>
+            <div id="kpi-meds-display" class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">3 of 6 Taken
+            </div>
+            <span id="kpi-meds-status" class="text-[11px] text-sky-600 font-semibold" data-i18n="kpi_meds_status">Doses
+              on schedule</span>
+          </div>
+        </div>
+
+        <!-- 2 Column Overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-gray-900 dark:text-white text-sm" data-i18n="bp_history_title">Blood Pressure
+                History</h3>
+              <button type="button" onclick="downloadMedicalReport()"
+                class="px-2.5 py-1.5 rounded-md bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm group"
+                title="Download Vitals Report (CSV)">
+                <i class="fa-solid fa-file-arrow-down text-white"></i>
+                <span data-i18n="btn_download_report">Download Report</span>
+              </button>
+            </div>
+            <div class="h-56"><canvas id="bpChart"></canvas></div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-gray-900 dark:text-white text-sm" data-i18n="nearby_emergency_hospitals">Nearby
+                Emergency Hospitals</h3>
+              <button type="button" onclick="window.switchTab('hospitals')"
+                class="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline">View All &rarr;</button>
+            </div>
+            <div class="space-y-2.5 text-xs">
+              <div
+                class="p-3 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex justify-between items-center gap-2">
+                <div>
+                  <div class="font-bold text-gray-900 dark:text-white">AIIMS Hospital</div>
+                  <div class="text-[11px] text-gray-400">Saket Nagar • 1.8 km</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span
+                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">18
+                    ICU Beds</span>
+                  <a href="https://www.google.com/maps/search/?api=1&query=AIIMS+Hospital+Saket+Nagar+Bhopal"
+                    target="_blank" rel="noopener noreferrer"
+                    class="px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-200 dark:border-emerald-800 text-[11px] font-semibold flex items-center gap-1 transition-all"
+                    title="Get Directions on Google Maps">
+                    <i class="fa-solid fa-diamond-turn-right text-xs"></i>
+                    <span class="hidden sm:inline">Directions</span>
+                  </a>
+                </div>
+              </div>
+              <div
+                class="p-3 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex justify-between items-center gap-2">
+                <div>
+                  <div class="font-bold text-gray-900 dark:text-white">Narmada Trauma Centre</div>
+                  <div class="text-[11px] text-gray-400">Arera Colony • 0.9 km</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span
+                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">6
+                    ICU Beds</span>
+                  <a href="https://www.google.com/maps/search/?api=1&query=Narmada+Trauma+Centre+Arera+Colony+Bhopal"
+                    target="_blank" rel="noopener noreferrer"
+                    class="px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-200 dark:border-emerald-800 text-[11px] font-semibold flex items-center gap-1 transition-all"
+                    title="Get Directions on Google Maps">
+                    <i class="fa-solid fa-diamond-turn-right text-xs"></i>
+                    <span class="hidden sm:inline">Directions</span>
+                  </a>
+                </div>
+              </div>
+              <div
+                class="p-3 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex justify-between items-center gap-2">
+                <div>
+                  <div class="font-bold text-gray-900 dark:text-white">Hamidia General Hospital</div>
+                  <div class="text-[11px] text-gray-400">Royal Market • 3.2 km</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span
+                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">14
+                    ICU Beds</span>
+                  <a href="https://www.google.com/maps/search/?api=1&query=Hamidia+General+Hospital+Royal+Market+Bhopal"
+                    target="_blank" rel="noopener noreferrer"
+                    class="px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white border border-emerald-200 dark:border-emerald-800 text-[11px] font-semibold flex items-center gap-1 transition-all"
+                    title="Get Directions on Google Maps">
+                    <i class="fa-solid fa-diamond-turn-right text-xs"></i>
+                    <span class="hidden sm:inline">Directions</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           2. NEARBY HOSPITALS & BEDS
+           ===================================================================== -->
+      <section id="section-hospitals" class="module-section hidden space-y-5">
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700">
+          <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white" data-i18n="hospitals_heading">
+            Nearby Hospitals & Bed Availability
+          </h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" data-i18n="hospitals_subheading">
+            Real-time bed counts and available doctors across nearby medical centers.
+          </p>
+
+          <!-- Search & Filters -->
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <input type="text" id="hosp-search-input" data-i18n="hosp_search_placeholder"
+              placeholder="Search by hospital, doctor, specialty, or area..."
+              class="w-full px-3.5 py-2 text-xs rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-sky-500">
+            <select id="hosp-type-filter"
+              class="w-full px-3 py-2 text-xs rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">
+              <option value="all">All Hospitals</option>
+              <option value="govt">Government Hospitals</option>
+              <option value="private">Private Super-Specialty</option>
+              <option value="trauma">24x7 Trauma Centers</option>
+            </select>
+            <label
+              class="flex items-center gap-2 px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-semibold cursor-pointer">
+              <input type="checkbox" id="hosp-icu-checkbox" class="w-4 h-4 rounded text-rose-600">
+              <span data-i18n="hosp_icu_only">ICU Beds Available Only</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div id="hospitals-list-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+      </section>
+
+      <!-- =====================================================================
+           3. BLOOD BANK AVAILABILITY (eRaktKosh Live System)
+           ===================================================================== -->
+      <section id="section-blood" class="module-section hidden space-y-5">
+        <!-- Search & Filter Card -->
+        <div
+          class="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
+                <span
+                  class="text-[11px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400">eRaktKosh
+                  Network</span>
+              </div>
+              <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white mt-0.5"
+                data-i18n="blood_heading">
+                Blood Bank Availability & Live Inventory
+              </h2>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" data-i18n="blood_subheading">
+                Search real-time stock across licensed blood banks by blood group and clinical component.
+              </p>
+            </div>
+            <div
+              class="px-3 py-1.5 rounded-md bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto shrink-0">
+              <i class="fa-solid fa-signal text-[10px]"></i>
+              <span>Live Inventory Sync</span>
+            </div>
+          </div>
+
+          <!-- Advanced Search Filter Bar -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <!-- 1. Select Blood Group Dropdown -->
+            <div class="sm:col-span-5">
+              <label for="blood-group-select" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1"
+                data-i18n="blood_select_label">
+                Select Blood Group
+              </label>
+              <div class="relative">
+                <select id="blood-group-select"
+                  class="w-full pl-9 pr-8 py-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none transition-all cursor-pointer appearance-none">
+                  <option value="All">All Blood Groups</option>
+                  <option value="A+">A+ (A Positive)</option>
+                  <option value="A-">A- (A Negative)</option>
+                  <option value="B+">B+ (B Positive)</option>
+                  <option value="B-">B- (B Negative)</option>
+                  <option value="O+" selected>O+ (O Positive)</option>
+                  <option value="O-">O- (O Negative)</option>
+                  <option value="AB+">AB+ (AB Positive)</option>
+                  <option value="AB-">AB- (AB Negative)</option>
+                </select>
+                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-rose-600 pointer-events-none text-xs">
+                  <i class="fa-solid fa-droplet"></i>
+                </div>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Blood Component Dropdown -->
+            <div class="sm:col-span-4">
+              <label for="blood-component-select" class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1"
+                data-i18n="blood_component_label">
+                Blood Component
+              </label>
+              <div class="relative">
+                <select id="blood-component-select"
+                  class="w-full pl-9 pr-8 py-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs sm:text-sm font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none transition-all cursor-pointer appearance-none">
+                  <option value="Whole Blood" selected>Whole Blood</option>
+                  <option value="Platelets">Platelets (PRP / RDP)</option>
+                  <option value="Plasma">Fresh Frozen Plasma (FFP)</option>
+                </select>
+                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none text-xs">
+                  <i class="fa-solid fa-vial"></i>
+                </div>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Search Button -->
+            <div class="sm:col-span-3 flex items-end">
+              <button type="button" id="blood-search-btn"
+                class="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm shadow-rose-600/30 transition-all cursor-pointer">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                <span data-i18n="btn_search_blood">Search</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Blood Selector Chips -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Quick Blood Group Select:</span>
+              <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                Selected: <span id="blood-selected-label" class="font-extrabold text-rose-600">O+</span>
+                <span class="text-gray-300 dark:text-gray-600 mx-1">•</span>
+                <span id="blood-component-label" class="font-semibold text-gray-700 dark:text-gray-300">Whole
+                  Blood</span>
+              </span>
+            </div>
+            <div class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+              <button type="button" data-blood="A+"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">A+</button>
+              <button type="button" data-blood="A-"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">A-</button>
+              <button type="button" data-blood="B+"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">B+</button>
+              <button type="button" data-blood="B-"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">B-</button>
+              <button type="button" data-blood="O+"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm bg-rose-600 text-white ring-2 ring-rose-500 transition-all cursor-pointer">O+</button>
+              <button type="button" data-blood="O-"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">O-</button>
+              <button type="button" data-blood="AB+"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">AB+</button>
+              <button type="button" data-blood="AB-"
+                class="blood-chip py-2 rounded-md border border-gray-200 dark:border-gray-700 font-bold text-xs sm:text-sm hover:border-rose-500 transition-all cursor-pointer">AB-</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blood Stock Results Container -->
+        <div id="blood-stock-container" class="space-y-3"></div>
+      </section>
+
+      <!-- =====================================================================
+           4. SYMPTOM CHECKER
+           ===================================================================== -->
+      <section id="section-triage" class="module-section hidden space-y-5">
+        <div
+          class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white" data-i18n="triage_heading">
+              Symptom Checker
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" data-i18n="triage_subheading">
+              Select what you are feeling to get quick guidance on what steps to take.
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <button id="clear-symptoms-btn" type="button"
+              class="px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 text-xs font-semibold"
+              data-i18n="triage_reset_btn">Clear</button>
+            <button id="check-symptoms-btn" type="button"
+              class="px-4 py-1.5 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-bold"
+              data-i18n="triage_eval_btn">Check Symptoms</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- Selection list -->
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 space-y-2">
+            <span class="text-xs font-bold text-gray-400 block mb-1">Click to select:</span>
+            <div id="symptoms-selection-list" class="space-y-2 max-h-[400px] overflow-y-auto"></div>
+          </div>
+
+          <!-- Result -->
+          <div class="space-y-3">
+            <div id="symptom-empty-box"
+              class="p-8 text-center bg-white dark:bg-gray-800 rounded-md border border-dashed border-gray-200 dark:border-gray-700">
+              <i class="fa-solid fa-stethoscope text-2xl text-gray-400 mb-2 block"></i>
+              <h4 class="font-bold text-sm text-gray-700 dark:text-gray-300" data-i18n="triage_placeholder_title">No
+                symptoms selected yet</h4>
+              <p class="text-xs text-gray-400 mt-1" data-i18n="triage_placeholder_desc">Choose one or more symptoms from
+                the list to get simple medical advice.</p>
+            </div>
+
+            <div id="symptom-result-box" class="hidden p-5 rounded-md border transition-all space-y-3.5">
+              <div class="flex items-center justify-between pb-2.5 border-b border-black/10 dark:border-white/10">
+                <h4 id="symptom-result-title" class="font-extrabold text-sm sm:text-base flex items-center gap-2"></h4>
+                <span id="symptom-result-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold"></span>
+              </div>
+
+              <p id="symptom-result-advice" class="text-xs sm:text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+              </p>
+
+              <!-- Dynamic Actionable First-Aid Panel -->
+              <div id="symptom-first-aid-box"
+                class="p-4 rounded-md border border-rose-200 dark:border-rose-900 bg-white dark:bg-gray-800 shadow-sm space-y-2">
+                <div
+                  class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-xs uppercase tracking-wider">
+                  <i class="fa-solid fa-kit-medical text-sm"></i>
+                  <span data-i18n="triage_first_aid_title">Immediate First-Aid Measures</span>
+                </div>
+                <div id="symptom-first-aid-content"
+                  class="text-xs sm:text-sm text-gray-800 dark:text-gray-200 space-y-1.5"></div>
+              </div>
+
+              <!-- Recommended Specialist Box -->
+              <div id="symptom-specialist-box"
+                class="p-3.5 rounded-md border border-sky-200 dark:border-sky-800 bg-sky-50/80 dark:bg-sky-950/50 flex items-center gap-3 text-xs">
+                <div
+                  class="w-8 h-8 rounded-md bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <div>
+                  <span class="font-bold text-sky-900 dark:text-sky-200 block"
+                    data-i18n="triage_specialist_label">Recommended Specialist:</span>
+                  <span id="symptom-specialist-text" class="text-sky-800 dark:text-sky-300 font-medium"></span>
+                </div>
+              </div>
+
+              <!-- Action Links -->
+              <div id="symptom-actions-container"
+                class="pt-3 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-2.5">
+                <a id="symptom-call-108-btn" href="tel:108"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-bold text-xs shadow-sm">
+                  <i class="fa-solid fa-phone"></i> Call 108 Emergency
+                </a>
+                <button type="button" onclick="window.switchTab('hospitals')"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white rounded-md font-bold text-xs shadow-sm">
+                  <i class="fa-solid fa-hospital text-emerald-600"></i> Find Nearby Hospitals
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           5. HEALTH VITALS
+           ===================================================================== -->
+      <section id="section-vitals" class="module-section hidden space-y-5">
+        <div
+          class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white" data-i18n="vitals_heading">
+              Health Vitals & Trends
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" data-i18n="vitals_subheading">
+              Track your blood pressure, glucose, and weight over time.
+            </p>
+          </div>
+          <button type="button" onclick="downloadMedicalReport()"
+            class="px-3.5 py-2 rounded-md bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-sm transition-all"
+            title="Download Vitals Report (CSV)">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span data-i18n="btn_download_report">Download Report</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <h4 class="font-bold text-xs text-gray-400 uppercase mb-3">Blood Sugar Trend (mg/dL)</h4>
+            <div class="h-56"><canvas id="sugarChart"></canvas></div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <h4 class="font-bold text-xs text-gray-400 uppercase mb-3">Weight Progress (kg)</h4>
+            <div class="h-56"><canvas id="weightChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Calculators -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- BMI -->
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 space-y-2">
+            <h4 class="font-bold text-sm text-gray-900 dark:text-white" data-i18n="vitals_bmi_title">BMI Calculator</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="number" id="bmi-h" value="172" placeholder="Height cm"
+                class="px-3 py-1.5 text-xs rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+              <input type="number" id="bmi-w" value="75" placeholder="Weight kg"
+                class="px-3 py-1.5 text-xs rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+            </div>
+            <button id="calc-bmi-btn" type="button"
+              class="w-full py-1.5 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-bold"
+              data-i18n="vitals_calc_btn">Calculate</button>
+            <div class="text-xs pt-1 flex justify-between text-gray-600 dark:text-gray-300">
+              <span>BMI Score:</span>
+              <strong id="bmi-result">25.3 (Overweight)</strong>
+            </div>
+          </div>
+
+          <!-- Water Target -->
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 space-y-2">
+            <h4 class="font-bold text-sm text-gray-900 dark:text-white" data-i18n="vitals_water_title">Daily Water
+              Target</h4>
+            <input type="number" id="water-w" value="75" placeholder="Weight kg"
+              class="w-full px-3 py-1.5 text-xs rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+            <button id="calc-water-btn" type="button"
+              class="w-full py-1.5 bg-blue-900 hover:bg-blue-800 text-white rounded-md text-xs font-bold"
+              data-i18n="vitals_calc_btn">Calculate Target</button>
+            <div class="text-xs pt-1 flex justify-between text-gray-600 dark:text-gray-300">
+              <span>Daily Target:</span>
+              <strong id="water-result">2.6 Liters / Day</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           6. MEDICINE SCHEDULE
+           ===================================================================== -->
+      <section id="section-medicines" class="module-section hidden space-y-5">
+        <div
+          class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white" data-i18n="meds_heading">
+              Medicine Schedule
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" data-i18n="meds_subheading">
+              Mark each dose as taken to stay on track.
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="open-add-med-btn" type="button" onclick="openAddMedicineModal()"
+              class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all">
+              <i class="fa-solid fa-plus text-xs"></i>
+              <span data-i18n="btn_add_medicine">Add Medicine</span>
+            </button>
+            <div class="text-right pl-3 border-l border-gray-200 dark:border-gray-700">
+              <span id="meds-progress-pct" class="text-lg font-black text-emerald-600 dark:text-emerald-400">50%</span>
+              <span class="text-[10px] text-gray-400 block">Adherence</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div id="meds-progress-bar" class="h-full bg-emerald-500 transition-all" style="width: 50%;"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <h4 class="font-bold text-amber-500 text-xs uppercase mb-2.5" data-i18n="meds_morning">Morning Doses</h4>
+            <div id="meds-morning" class="space-y-2"></div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <h4 class="font-bold text-sky-500 text-xs uppercase mb-2.5" data-i18n="meds_afternoon">Afternoon Doses</h4>
+            <div id="meds-afternoon" class="space-y-2"></div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <h4 class="font-bold text-indigo-500 text-xs uppercase mb-2.5" data-i18n="meds_night">Night Doses</h4>
+            <div id="meds-night" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           7. MY PROFILE SECTION
+           ===================================================================== -->
+      <section id="section-profile" class="module-section hidden space-y-5">
+        <div id="profile-section" class="space-y-5">
+          <!-- Profile Header Banner -->
+          <div
+            class="bg-gradient-to-r from-blue-900 to-slate-900 rounded-md p-5 sm:p-6 text-white shadow-sm border border-blue-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4 min-w-0">
+              <div class="relative shrink-0">
+                <div id="profile-avatar-display"
+                  class="w-16 h-16 sm:w-20 sm:h-20 rounded-md bg-white text-blue-900 dark:bg-gray-700 dark:text-blue-300 font-extrabold text-2xl sm:text-3xl flex items-center justify-center shadow-md">
+                  U
+                </div>
+                <div
+                  class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[9px] text-white"
+                  title="Verified Patient Account">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h2 id="profile-display-name" class="text-xl sm:text-2xl font-extrabold tracking-tight truncate">User
+                  </h2>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white border border-white/20">ABDM
+                    Verified</span>
+                  <span id="profile-donor-pill"
+                    class="hidden px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/30 text-rose-100 border border-rose-400/40 flex items-center gap-1">
+                    <i class="fa-solid fa-heart text-[9px] text-rose-300"></i>
+                    <span>Blood Donor</span>
+                  </span>
+                </div>
+                <p id="profile-display-email" class="text-sky-100 dark:text-gray-300 text-xs mt-0.5 truncate">
+                  user@example.com</p>
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                  <span
+                    class="px-2 py-0.5 rounded text-[11px] font-bold bg-white/20 text-white border border-white/20 flex items-center gap-1">
+                    <i class="fa-solid fa-droplet text-rose-300"></i>
+                    <span>Blood: <span id="profile-header-blood" class="font-extrabold">AB+</span></span>
+                  </span>
+                  <span class="text-sky-200 dark:text-gray-400 text-xs">Patient ID: <span id="profile-header-pid"
+                      class="font-mono font-bold">P-8921</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Single Primary Edit Profile Action Button at Top Right -->
+            <button id="btn-edit-profile" type="button"
+              class="px-4 py-2.5 bg-white text-blue-900 dark:bg-gray-700 dark:text-white rounded-md text-xs sm:text-sm font-bold hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center gap-2 shadow-sm transition-all self-start sm:self-center shrink-0 cursor-pointer">
+              <i class="fa-solid fa-user-pen text-sky-600 dark:text-sky-400"></i>
+              <span data-i18n="btn_edit_profile">Edit Profile</span>
+            </button>
+          </div>
+
+          <!-- Profile Details Cards Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Full Name Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-user text-sky-600 dark:text-sky-400"></i>
+                <span>Full Name</span>
+              </div>
+              <div id="profile-name-display"
+                class="text-base font-extrabold text-gray-900 dark:text-white mt-1 truncate">User</div>
+              <span class="text-[11px] text-gray-400">Primary Account Holder</span>
+            </div>
+
+            <!-- Email Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-envelope text-indigo-600 dark:text-indigo-400"></i>
+                <span>Email Address</span>
+              </div>
+              <div id="profile-email-display"
+                class="text-base font-extrabold text-gray-900 dark:text-white mt-1 truncate">user@example.com</div>
+              <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold"><i
+                  class="fa-solid fa-circle-check text-[10px] mr-1"></i>Verified for Login</span>
+            </div>
+
+            <!-- Age Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-cake-candles text-amber-500"></i>
+                <span>Age</span>
+              </div>
+              <div id="profile-age-display" class="text-base font-extrabold text-gray-900 dark:text-white mt-1">48 Yrs
+              </div>
+              <span id="profile-age-demographic" class="text-[11px] text-gray-400">Adult Demographic Record</span>
+            </div>
+
+            <!-- Gender Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-venus-mars text-teal-600 dark:text-teal-400"></i>
+                <span>Gender</span>
+              </div>
+              <div id="profile-gender-display" class="text-base font-extrabold text-gray-900 dark:text-white mt-1">Male
+              </div>
+              <span class="text-[11px] text-gray-400">Clinical Record</span>
+            </div>
+
+            <!-- Blood Group Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-droplet text-rose-600 dark:text-rose-400"></i>
+                <span>Blood Group</span>
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <span id="profile-blood-display"
+                  class="px-2.5 py-0.5 rounded-md text-sm font-black bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900">AB+</span>
+                <span id="profile-blood-label" class="text-[11px] text-gray-400">Universal Recipient</span>
+              </div>
+            </div>
+
+            <!-- Phone Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-phone text-emerald-600 dark:text-emerald-400"></i>
+                <span>Phone Number</span>
+              </div>
+              <div id="profile-phone-display"
+                class="text-base font-extrabold text-gray-900 dark:text-white mt-1 truncate">+91 98260 12345</div>
+              <span class="text-[11px] text-gray-400">Primary Contact</span>
+            </div>
+
+            <!-- Residential Address Card -->
+            <div
+              class="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 card-hover md:col-span-2 lg:col-span-3">
+              <div class="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-location-dot text-rose-500"></i>
+                <span>Residential Address</span>
+              </div>
+              <div id="profile-address-display"
+                class="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 mt-1">
+                E-7 Arera Colony, Bhopal, MP 462016
+              </div>
+              <span class="text-[11px] text-gray-400">Used for Nearby Hospital & Emergency Ambulance Dispatch</span>
+            </div>
+          </div>
+
+          <!-- Voluntary Blood Donor Registration Opt-in (eRaktKosh Sync) -->
+          <div
+            class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-hover shadow-sm">
+            <div class="flex items-start sm:items-center gap-3.5">
+              <div
+                class="w-11 h-11 rounded-md bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-lg shrink-0">
+                <i class="fa-solid fa-hand-holding-droplet"></i>
+              </div>
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="text-sm sm:text-base font-bold text-gray-900 dark:text-white"
+                    data-i18n="donor_register_title">
+                    Register as Voluntary Blood Donor
+                  </h3>
+                  <span id="donor-status-badge"
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    Not Registered
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" data-i18n="donor_register_desc">
+                  Make your donor profile discoverable to local hospitals and blood banks for urgent blood requirements
+                  in your city.
+                </p>
+              </div>
+            </div>
+
+            <!-- Tailwind Toggle Switch -->
+            <label class="relative inline-flex items-center cursor-pointer shrink-0"
+              title="Toggle Voluntary Blood Donor Status">
+              <input type="checkbox" id="donor-toggle-checkbox" class="sr-only peer"
+                onchange="handleToggleDonor(event)">
+              <div
+                class="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-rose-600">
+              </div>
+            </label>
+          </div>
+
+          <!-- Ayushman Bharat Digital Health Card Display Area -->
+          <div id="ayushman-card-section"
+            class="bg-white dark:bg-gray-800 p-5 rounded-md border border-gray-200 dark:border-gray-700 card-hover shadow-sm transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-start sm:items-center gap-3.5">
+                <div
+                  class="w-11 h-11 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg shrink-0">
+                  <i class="fa-solid fa-id-card"></i>
+                </div>
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2.5">
+                    <h3 class="text-sm sm:text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <span data-i18n="ayushman_card_title">Ayushman Card</span>
+                    </h3>
+                  </div>
+                  <p id="ayushman-card-subtitle" class="text-xs text-gray-500 dark:text-gray-400">
+                    Upload your Ayushman / ABHA digital health card image for hospital admissions and government health
+                    scheme coverage.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Button & Badge Action Area -->
+              <div class="shrink-0 flex items-center gap-2.5">
+                <!-- If linked, display a green badge or edit option -->
+                <div id="ayushman-linked-badge" class="hidden">
+                  <button id="ayushman-badge" type="button" onclick="openAyushmanModal()"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shadow-sm hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-colors cursor-pointer"
+                    title="Ayushman Card Uploaded (Click to view or replace)">
+                    <i class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400 text-sm"></i>
+                    <span id="ayushman-abha-display">Card Uploaded</span>
+                    <i class="fa-solid fa-pen-to-square text-[10px] ml-1 opacity-70"></i>
+                  </button>
+                </div>
+
+                <!-- "Add Ayushman Card" button (shown when no card is linked) -->
+                <button id="btn-add-ayushman" type="button" onclick="openAyushmanModal()"
+                  class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer">
+                  <i id="ayushman-btn-icon" class="fa-solid fa-plus-circle"></i>
+                  <span id="ayushman-btn-text">Add Ayushman Card</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Uploaded Ayushman Card Image Display -->
+            <img id="display-ayushman-image" class="hidden w-64 h-auto mt-4 rounded border shadow-sm"
+              alt="Ayushman Card">
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- =========================================================================
+         FOOTER
+         ========================================================================= -->
+    <footer class="bg-blue-900 text-gray-200 mt-12 py-6 border-t-2 border-orange-500">
+      <div class="flex flex-col md:flex-row justify-between items-center px-8 text-sm">
+        <div class="mb-4 md:mb-0 text-center md:text-left">
+          © 2026 Smart E-Health Record Portal. All rights reserved.
+        </div>
+        <div class="flex flex-wrap justify-center items-center gap-2">
+          <a href="#privacy" class="hover:text-white transition-colors">Privacy Policy</a>
+          <span class="text-gray-400">|</span>
+          <a href="#terms" class="hover:text-white transition-colors">Terms of Use</a>
+          <span class="text-gray-400">|</span>
+          <a href="#accessibility" class="hover:text-white transition-colors">Accessibility</a>
+          <span class="text-gray-400">|</span>
+          <a href="#contact" class="hover:text-white transition-colors">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+
+</html>

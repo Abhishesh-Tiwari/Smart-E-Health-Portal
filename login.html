@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Register — Smart E-Health Record Portal</title>
+  
+  <!-- Clean Standard Typography: Inter & Roboto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Roboto', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+          },
+          colors: {
+            nic: {
+              blue: '#1e3a8a',
+              darkBlue: '#172554',
+              saffron: '#f97316',
+              green: '#15803d',
+              gray: '#f9fafb'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Clean Official NIC Styling */
+    body {
+      background-color: #f9fafb;
+      font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Toast Slide Animation */
+    @keyframes slideInDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOutUp {
+      from {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+    }
+
+    .toast-enter {
+      animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .toast-exit {
+      animation: slideOutUp 0.3s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+    }
+
+    /* Form Shake on Error */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-7px); }
+      40%, 80% { transform: translateX(7px); }
+    }
+
+    .animate-shake {
+      animation: shake 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-slate-800 antialiased selection:bg-blue-900 selection:text-white relative overflow-x-hidden font-sans">
+
+  <!-- Official Indian Government (NIC) Header with Tricolor Accent -->
+  <header class="bg-blue-900 text-white shadow-sm border-b border-blue-950">
+    <!-- 4px Saffron to Green Tricolor Top Accent Border -->
+    <div class="h-1 w-full bg-gradient-to-r from-orange-500 via-white to-green-500"></div>
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center font-bold border border-white/20">
+          <i class="fa-solid fa-heart-pulse text-orange-400 text-sm"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-sm sm:text-base text-white tracking-tight">Smart E-Health Portal</span>
+          <span class="hidden sm:inline-block text-[10px] text-blue-200 ml-2 font-medium tracking-wider uppercase border-l border-blue-700 pl-2">National Health Gateway</span>
+        </div>
+      </div>
+      <div class="text-[11px] text-blue-200 font-semibold tracking-wide flex items-center gap-1.5">
+        <i class="fa-solid fa-landmark text-orange-300 text-xs"></i>
+        <span class="hidden sm:inline">Government of India</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification Center (Top Center) -->
+  <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-md px-4 pointer-events-auto"></div>
+
+  <!-- Main Centered Content -->
+  <main class="flex-1 flex items-center justify-center p-4 sm:p-6 z-10">
+    <div class="w-full max-w-md">
+      
+      <!-- Official NIC Boxy Auth Card with Tricolor Accent Top -->
+      <div id="auth-card" class="bg-white rounded-md border border-gray-200 shadow-sm p-6 sm:p-8 transition-all relative overflow-hidden">
+        <!-- Tricolor Accent Top Stripe -->
+        <div class="h-1 w-full bg-gradient-to-r from-orange-500 via-white to-green-500 absolute top-0 left-0 right-0"></div>
+        
+        <!-- Header / Logo -->
+        <div class="text-center pt-2">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-md bg-blue-900 text-white shadow-sm mb-3">
+            <i class="fa-solid fa-heart-pulse text-xl text-orange-400"></i>
+          </div>
+          
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Smart E-Health Portal
+          </h1>
+          <p id="auth-card-subtitle" class="text-xs text-slate-500 mt-1">
+            Sign in to access your official e-health dashboard
+          </p>
+        </div>
+
+        <!-- Toggle Switcher: Sign In / Sign Up -->
+        <div class="grid grid-cols-2 p-1 bg-gray-100 rounded-md mt-5 mb-5 border border-gray-200">
+          <button 
+            type="button" 
+            id="tab-signin-btn" 
+            onclick="switchAuthTab('signin')" 
+            class="py-2 text-xs sm:text-sm font-bold rounded-md transition-all shadow-sm bg-blue-900 text-white"
+          >
+            Sign In
+          </button>
+          <button 
+            type="button" 
+            id="tab-signup-btn" 
+            onclick="switchAuthTab('signup')" 
+            class="py-2 text-xs sm:text-sm font-bold rounded-md transition-all text-slate-600 hover:text-slate-900"
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <!-- =====================================================================
+             1. SIGN IN FORM
+             ===================================================================== -->
+        <div id="signin-section">
+          <!-- Quick Demo Credentials Box -->
+          <div class="mb-4 p-3 bg-blue-50/70 rounded-md border border-blue-200 text-xs flex items-center justify-between">
+            <div class="space-y-0.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-blue-900 block">
+                <i class="fa-solid fa-key text-blue-900 mr-1"></i> Quick Demo Account
+              </span>
+              <div class="text-slate-600 font-mono text-[11px]">
+                <span class="font-bold text-slate-900">rahul@example.com</span> | <span class="font-bold text-slate-900">password123</span>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              onclick="autoFillDemoCredentials()" 
+              class="px-2.5 py-1.5 bg-blue-900 hover:bg-blue-800 text-white text-[11px] font-bold rounded-md shadow-sm transition-all whitespace-nowrap"
+            >
+              Auto Fill
+            </button>
+          </div>
+
+          <form id="signin-form" class="space-y-4">
+            <!-- Email Input -->
+            <div>
+              <label for="signin-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Email Address
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
+                  <i class="fa-solid fa-envelope"></i>
+                </span>
+                <input 
+                  type="email" 
+                  id="signin-email" 
+                  name="email" 
+                  required 
+                  autocomplete="email"
+                  placeholder="name@example.com" 
+                  class="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 font-medium transition-all"
+                >
+              </div>
+            </div>
+
+            <!-- Password Input -->
+            <div>
+              <label for="signin-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
+                  <i class="fa-solid fa-lock"></i>
+                </span>
+                <input 
+                  type="password" 
+                  id="signin-password" 
+                  name="password" 
+                  required 
+                  autocomplete="current-password"
+                  placeholder="Enter your password" 
+                  class="w-full pl-10 pr-11 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 font-medium transition-all"
+                >
+                <!-- Show / Hide Password Toggle -->
+                <button 
+                  type="button" 
+                  id="signin-toggle-pw" 
+                  class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 text-sm"
+                  title="Toggle password visibility"
+                >
+                  <i class="fa-regular fa-eye" id="signin-eye-icon"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Options Row -->
+            <div class="flex items-center justify-between text-xs pt-1">
+              <label class="flex items-center gap-2 cursor-pointer select-none text-slate-600">
+                <input type="checkbox" id="signin-remember" checked class="w-4 h-4 rounded border-gray-300 text-blue-900 focus:ring-blue-900">
+                <span>Remember session</span>
+              </label>
+              <span class="text-emerald-700 font-semibold flex items-center gap-1">
+                <i class="fa-solid fa-shield-halved text-[11px]"></i> 256-Bit Encrypted
+              </span>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              id="signin-submit-btn" 
+              class="w-full py-2.5 px-4 bg-blue-900 hover:bg-blue-800 text-white font-bold text-sm rounded-md shadow-sm transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            >
+              <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i>
+              <span id="signin-btn-text">Sign In</span>
+            </button>
+          </form>
+
+          <div class="mt-4 text-center text-xs text-slate-500">
+            Don't have an account? 
+            <button type="button" onclick="switchAuthTab('signup')" class="text-blue-900 hover:text-blue-950 font-bold hover:underline">
+              Create an account
+            </button>
+          </div>
+        </div>
+
+        <!-- =====================================================================
+             2. SIGN UP FORM
+             ===================================================================== -->
+        <div id="signup-section" class="hidden">
+          <form id="signup-form" class="space-y-4">
+            <!-- Full Name Input -->
+            <div>
+              <label for="signup-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Full Name
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
+                  <i class="fa-solid fa-user"></i>
+                </span>
+                <input 
+                  type="text" 
+                  id="signup-name" 
+                  name="name" 
+                  required 
+                  autocomplete="name"
+                  placeholder="e.g., Rahul Sharma" 
+                  class="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 font-medium transition-all"
+                >
+              </div>
+            </div>
+
+            <!-- Email Address Input -->
+            <div>
+              <label for="signup-email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Email Address
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
+                  <i class="fa-solid fa-envelope"></i>
+                </span>
+                <input 
+                  type="email" 
+                  id="signup-email" 
+                  name="email" 
+                  required 
+                  autocomplete="email"
+                  placeholder="e.g., rahul@example.com" 
+                  class="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 font-medium transition-all"
+                >
+              </div>
+            </div>
+
+            <!-- Password Input -->
+            <div>
+              <label for="signup-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Create Password
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
+                  <i class="fa-solid fa-lock"></i>
+                </span>
+                <input 
+                  type="password" 
+                  id="signup-password" 
+                  name="password" 
+                  required 
+                  minlength="6"
+                  autocomplete="new-password"
+                  placeholder="At least 6 characters" 
+                  class="w-full pl-10 pr-11 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 font-medium transition-all"
+                >
+                <!-- Show / Hide Password Toggle -->
+                <button 
+                  type="button" 
+                  id="signup-toggle-pw" 
+                  class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 text-sm"
+                  title="Toggle password visibility"
+                >
+                  <i class="fa-regular fa-eye" id="signup-eye-icon"></i>
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Must be at least 6 characters long.</p>
+            </div>
+
+            <!-- Healthcare Terms Consent -->
+            <div class="text-xs pt-1">
+              <label class="flex items-start gap-2 cursor-pointer select-none text-slate-600">
+                <input type="checkbox" id="signup-terms" checked required class="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-900 focus:ring-blue-900">
+                <span>I agree to healthcare data privacy and electronic health portal terms.</span>
+              </label>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              id="signup-submit-btn" 
+              class="w-full py-2.5 px-4 bg-blue-900 hover:bg-blue-800 text-white font-bold text-sm rounded-md shadow-sm transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            >
+              <i class="fa-solid fa-user-plus text-xs"></i>
+              <span id="signup-btn-text">Create Account</span>
+            </button>
+          </form>
+
+          <div class="mt-4 text-center text-xs text-slate-500">
+            Already registered? 
+            <button type="button" onclick="switchAuthTab('signin')" class="text-blue-900 hover:text-blue-950 font-bold hover:underline">
+              Sign In
+            </button>
+          </div>
+        </div>
+
+        <!-- Compliance & Security Badge -->
+        <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+          <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 font-medium">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+            <span>ABDM & NDHM Compliant National Health Authority Gateway</span>
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Minimal NIC Footer -->
+  <footer class="py-4 px-4 text-center z-10 text-slate-500 text-xs bg-white border-t border-gray-200">
+    © 2026 Smart E-Health Record Portal • National Informatics Centre (NIC) Design Framework.
+  </footer>
+
+  <!-- Vanilla JavaScript Logic -->
+  <script>
+    // --- 1. LOCALSTORAGE USER DATABASE HELPER ---
+    const DEFAULT_USERS = [
+      {
+        name: "User",
+        email: "user@medivault.com",
+        password: "password123",
+        age: 48,
+        gender: "Male",
+        bloodGroup: "AB+",
+        phone: "+91 98260 12345",
+        address: "E-7 Arera Colony, Bhopal, MP 462016",
+        isDonor: false,
+        createdAt: new Date().toISOString()
+      },
+      {
+        name: "Rahul Sharma",
+        email: "rahul@example.com",
+        password: "password123",
+        age: 48,
+        gender: "Male",
+        bloodGroup: "AB+",
+        phone: "+91 98260 12345",
+        address: "E-7 Arera Colony, Bhopal, MP 462016",
+        isDonor: false,
+        createdAt: new Date().toISOString()
+      },
+      {
+        name: "Admin User",
+        email: "admin@medivault.com",
+        password: "admin123",
+        age: 42,
+        gender: "Female",
+        bloodGroup: "O+",
+        phone: "+91 98261 98765",
+        address: "Shahpura, Bhopal, MP 462039",
+        isDonor: false,
+        createdAt: new Date().toISOString()
+      }
+    ];
+
+    function getStoredUsers() {
+      try {
+        const raw = localStorage.getItem("users");
+        if (!raw) {
+          localStorage.setItem("users", JSON.stringify(DEFAULT_USERS));
+          return [...DEFAULT_USERS];
+        }
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+        localStorage.setItem("users", JSON.stringify(DEFAULT_USERS));
+        return [...DEFAULT_USERS];
+      } catch (e) {
+        localStorage.setItem("users", JSON.stringify(DEFAULT_USERS));
+        return [...DEFAULT_USERS];
+      }
+    }
+
+    function saveStoredUsers(users) {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    // Initialize users on load if not present
+    getStoredUsers();
+
+    // --- 2. TAB SWITCHING (SIGN IN / SIGN UP) ---
+    function switchAuthTab(tab) {
+      const tabSignInBtn = document.getElementById('tab-signin-btn');
+      const tabSignUpBtn = document.getElementById('tab-signup-btn');
+      const signinSection = document.getElementById('signin-section');
+      const signupSection = document.getElementById('signup-section');
+      const subtitle = document.getElementById('auth-card-subtitle');
+
+      if (tab === 'signin') {
+        signinSection.classList.remove('hidden');
+        signupSection.classList.add('hidden');
+
+        tabSignInBtn.className = "py-2 text-xs sm:text-sm font-bold rounded-md transition-all shadow-sm bg-blue-900 text-white";
+        tabSignUpBtn.className = "py-2 text-xs sm:text-sm font-bold rounded-md transition-all text-slate-600 hover:text-slate-900";
+        if (subtitle) subtitle.textContent = "Sign in to access your official e-health dashboard";
+        document.getElementById('signin-email')?.focus();
+      } else {
+        signupSection.classList.remove('hidden');
+        signinSection.classList.add('hidden');
+
+        tabSignUpBtn.className = "py-2 text-xs sm:text-sm font-bold rounded-md transition-all shadow-sm bg-blue-900 text-white";
+        tabSignInBtn.className = "py-2 text-xs sm:text-sm font-bold rounded-md transition-all text-slate-600 hover:text-slate-900";
+        if (subtitle) subtitle.textContent = "Create an account to manage your health records";
+        document.getElementById('signup-name')?.focus();
+      }
+    }
+
+    // --- 3. PASSWORD VISIBILITY TOGGLE ---
+    function setupPasswordToggle(buttonId, inputId, iconId) {
+      const btn = document.getElementById(buttonId);
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(iconId);
+      if (btn && input && icon) {
+        btn.addEventListener('click', () => {
+          const isPw = input.getAttribute('type') === 'password';
+          input.setAttribute('type', isPw ? 'text' : 'password');
+          icon.className = isPw ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+        });
+      }
+    }
+
+    setupPasswordToggle('signin-toggle-pw', 'signin-password', 'signin-eye-icon');
+    setupPasswordToggle('signup-toggle-pw', 'signup-password', 'signup-eye-icon');
+
+    // --- 4. AUTO-FILL DEMO CREDENTIALS ---
+    function autoFillDemoCredentials() {
+      switchAuthTab('signin');
+      const emailInput = document.getElementById('signin-email');
+      const passwordInput = document.getElementById('signin-password');
+      if (emailInput) emailInput.value = 'rahul@example.com';
+      if (passwordInput) passwordInput.value = 'password123';
+      showToast('Demo credentials filled (Rahul Sharma)', 'info', 2500);
+      if (passwordInput) passwordInput.focus();
+    }
+
+    // --- 5. TOAST NOTIFICATION UTILITY ---
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const icons = {
+        success: 'fa-circle-check text-emerald-500',
+        error: 'fa-triangle-exclamation text-rose-500',
+        info: 'fa-circle-info text-sky-500'
+      };
+
+      const borderStyles = {
+        success: 'border-emerald-500/40 bg-emerald-50/95 text-emerald-950 shadow-emerald-500/20',
+        error: 'border-rose-500/40 bg-rose-50/95 text-rose-950 shadow-rose-500/20',
+        info: 'border-sky-500/40 bg-sky-50/95 text-sky-950 shadow-sky-500/20'
+      };
+
+      toast.className = `flex items-center gap-3 px-4 py-3 rounded-md border shadow-xl backdrop-blur-md toast-enter font-medium text-xs sm:text-sm ${borderStyles[type] || borderStyles.info}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info} text-lg shrink-0"></i>
+        <span class="flex-1 font-semibold">${message}</span>
+        <button type="button" class="text-slate-400 hover:text-slate-700 ml-2 text-xs" onclick="this.parentElement.remove()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // --- 6. SIGN UP FORM SUBMISSION ---
+    const signupForm = document.getElementById('signup-form');
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const nameInput = document.getElementById('signup-name');
+      const emailInput = document.getElementById('signup-email');
+      const passwordInput = document.getElementById('signup-password');
+
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      if (!name || !email || !password) {
+        showToast('Please fill in all required fields.', 'error');
+        return;
+      }
+
+      if (password.length < 6) {
+        showToast('Password must be at least 6 characters.', 'error');
+        passwordInput.focus();
+        return;
+      }
+
+      const users = getStoredUsers();
+
+      // Check if email already registered
+      const existing = users.find(u => u.email.toLowerCase() === email);
+      if (existing) {
+        showToast('An account with this email already exists. Please sign in.', 'error', 4000);
+        switchAuthTab('signin');
+        const signinEmail = document.getElementById('signin-email');
+        if (signinEmail) signinEmail.value = email;
+        document.getElementById('signin-password')?.focus();
+        return;
+      }
+
+      // Create and save new user object
+      const newUser = {
+        name: name,
+        email: email,
+        password: password,
+        age: 48,
+        gender: "Male",
+        bloodGroup: "AB+",
+        phone: "+91 98260 12345",
+        address: "E-7 Arera Colony, Bhopal, MP 462016",
+        createdAt: new Date().toISOString()
+      };
+
+      users.push(newUser);
+      saveStoredUsers(users);
+
+      showToast(`Account created for ${name}! Please sign in.`, 'success', 3500);
+
+      // Reset signup form
+      signupForm.reset();
+
+      // Switch to sign in form with email prefilled
+      switchAuthTab('signin');
+      const signinEmail = document.getElementById('signin-email');
+      if (signinEmail) signinEmail.value = email;
+      document.getElementById('signin-password')?.focus();
+    });
+
+    // --- 7. SIGN IN FORM SUBMISSION ---
+    const signinForm = document.getElementById('signin-form');
+    signinForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const emailInput = document.getElementById('signin-email');
+      const passwordInput = document.getElementById('signin-password');
+      const submitBtn = document.getElementById('signin-submit-btn');
+      const btnText = document.getElementById('signin-btn-text');
+
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        showToast('Please enter both email and password.', 'error');
+        return;
+      }
+
+      const users = getStoredUsers();
+
+      // Check credentials (supports email, legacy 'admin', or 'user' username)
+      const matchedUser = users.find(u => 
+        (u.email.toLowerCase() === email || 
+         (email === 'admin' && u.email === 'admin@medivault.com') ||
+         (email === 'user' && u.email === 'user@medivault.com')) && 
+        u.password === password
+      );
+
+      if (matchedUser) {
+        // Save auth state and currentUser object in LocalStorage
+        const currentUserData = {
+          name: matchedUser.name,
+          email: matchedUser.email,
+          age: matchedUser.age || 48,
+          gender: matchedUser.gender || "Male",
+          bloodGroup: matchedUser.bloodGroup || "AB+",
+          phone: matchedUser.phone || "+91 98260 12345",
+          address: matchedUser.address || "E-7 Arera Colony, Bhopal, MP 462016",
+          isDonor: matchedUser.isDonor === true
+        };
+
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(currentUserData));
+
+        // Loading state
+        submitBtn.disabled = true;
+        btnText.textContent = 'Signing in...';
+        submitBtn.classList.add('opacity-90', 'cursor-not-allowed');
+
+        showToast(`Welcome, ${matchedUser.name}! Redirecting...`, 'success', 2000);
+
+        // Redirect to index.html
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 700);
+
+      } else {
+        // Failed login
+        showToast('Invalid email or password. Please try again.', 'error', 4000);
+
+        signinForm.classList.add('animate-shake');
+        setTimeout(() => signinForm.classList.remove('animate-shake'), 400);
+
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+    });
+
+    // --- 8. AUTO-REDIRECT IF ALREADY LOGGED IN ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const rawUser = localStorage.getItem('currentUser');
+      if (loggedIn && rawUser) {
+        try {
+          const parsed = JSON.parse(rawUser);
+          if (parsed && (parsed.name || typeof parsed === 'string')) {
+            window.location.replace('index.html');
+          }
+        } catch (e) {
+          if (typeof rawUser === 'string' && rawUser.trim()) {
+            window.location.replace('index.html');
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
