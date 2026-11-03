@@ -87,17 +87,13 @@ MediVault-Major-Project/
    ```
 2. Open your browser and navigate to:
    👉 **`http://localhost:8000/login.html`**
-3. Log in with:
-   - **Username:** `admin`
-   - **Password:** `admin123`
+
 4. The dashboard will load with full Bhopal Hyperlocal features, Dark Mode switch, and Hindi/English translation toggle.
 
 ---
 
 ## 🎓 Academic Attribution
 
-- **Project Title:** Smart E-Health Record Portal — Bhopal Hyperlocal Edition
+- **Project Title:** Smart E-Health Record Portal
 - **Developed By:** Abhishesh Tiwari
-- **Guided By:** Prof. A. Sharma
-- **Degree:** Bachelor of Technology (B.Tech)
-- **Specialization:** Computer Science & Engineering / Healthcare Informatics
+- 
